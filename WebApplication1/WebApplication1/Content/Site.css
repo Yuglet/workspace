@@ -20,5 +20,39 @@
 input,
 select,
 textarea {
-    max-width: 280px;
+    max-width: 100%;
+}
+
+.page-header {
+    margin-top: 10px;
+}
+
+.input-json {
+    min-height: 540px;
+    font-family: Consolas, "Courier New", monospace;
+}
+
+.helper-panel ul,
+.result-card ul {
+    padding-left: 20px;
+}
+
+.result-panel {
+    min-height: 320px;
+}
+
+.result-card {
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.result-card:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.label {
+    margin-right: 6px;
 }

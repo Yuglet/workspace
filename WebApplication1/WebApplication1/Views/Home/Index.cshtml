@@ -1,31 +1,89 @@
-﻿@{
-    ViewBag.Title = "Home Page";
+﻿@using System.Linq
+@model WebApplication1.Models.IndexPageViewModel
+
+@{
+    ViewBag.Title = "主力浪潮/连板结构助手";
 }
 
-<div class="jumbotron">
-    <h1>ASP.NET</h1>
-    <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-    <p><a href="https://asp.net" class="btn btn-primary btn-lg">Learn more &raquo;</a></p>
+<div class="page-header">
+    <h1>主力浪潮/连板结构判定与风控助手</h1>
+    <p class="lead">输入候选股的日K、量能、分时信号与连板信息，系统会默认剔除 ST、创业板/科创板/北交所，并从中挑选最多 2 只最符合“主力浪潮”的标的。</p>
 </div>
 
 <div class="row">
-    <div class="col-md-4">
-        <h2>Getting started</h2>
-        <p>
-            ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-            enables a clean separation of concerns and gives you full control over markup
-            for enjoyable, agile development.
-        </p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
+    <div class="col-md-6">
+        @using (Html.BeginForm("Index", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <div class="form-group">
+                <label for="RawJson">候选股票 JSON</label>
+                @Html.TextAreaFor(model => model.RawJson, new { @class = "form-control input-json", rows = 30 })
+            </div>
+            <button type="submit" class="btn btn-primary">生成风控结论</button>
+        }
+
+        <div class="panel panel-default helper-panel">
+            <div class="panel-heading">输入结构说明</div>
+            <div class="panel-body">
+                <ul>
+                    <li>每个候选项至少包含：code、name、market、isSt、consecutiveLimitUpCount、candles。</li>
+                    <li>candles 为按日期排列的日K数组，建议提供近 30-60 日，至少 10 日。</li>
+                    <li>单根 K 支持字段：date / open / high / low / close / volume / isLimitUp。</li>
+                    <li>可选 intraday：breaksAveragePriceAndFails、reclaimsAveragePrice，用于分时均价线弱转强判断。</li>
+                </ul>
+            </div>
+        </div>
     </div>
-    <div class="col-md-4">
-        <h2>Get more libraries</h2>
-        <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Web Hosting</h2>
-        <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
+
+    <div class="col-md-6">
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-warning">@Model.ErrorMessage</div>
+        }
+
+        @if (Model.Recommendations != null && Model.Recommendations.Any())
+        {
+            <div class="panel panel-success result-panel">
+                <div class="panel-heading">
+                    <strong>结论：优先关注 @string.Join("、", Model.Recommendations.Select(item => item.Name + "(" + item.Code + ")"))</strong>
+                </div>
+                <div class="panel-body">
+                    @foreach (var item in Model.Recommendations)
+                    {
+                        <div class="result-card">
+                            <h3>@item.Name (@item.Code)</h3>
+                            <p><span class="label label-primary">@item.PatternType</span> <span class="label label-default">评分 @item.Score</span></p>
+                            <p><strong>关键支撑/压力：</strong>支撑1 @item.Support1.ToString("F2")；支撑2 @item.Support2.ToString("F2")；压力 @item.Resistance.ToString("F2")</p>
+                            <p><strong>明日强弱条件：</strong>@item.TomorrowCondition</p>
+                            <p><strong>止损线：</strong>@item.StopLoss.ToString("F2")</p>
+                            <p><strong>止盈触发：</strong>@item.TakeProfitTrigger</p>
+                            <p><strong>结构依据：</strong>@item.Reason</p>
+                            <div>
+                                <strong>观察清单：</strong>
+                                <ul>
+                                    @foreach (var watchItem in item.WatchItems)
+                                    {
+                                        <li>@watchItem</li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="panel panel-info result-panel">
+                <div class="panel-heading"><strong>输出格式</strong></div>
+                <div class="panel-body">
+                    <ol>
+                        <li>先给结论：最多 2 只最优候选。</li>
+                        <li>每只输出：属于 A 或 C、关键支撑/压力、明日强弱条件、止损线、止盈触发。</li>
+                        <li>补充观察清单：重点看实体中位、最低价、分时均价线承接。</li>
+                    </ol>
+                </div>
+            </div>
+        }
     </div>
 </div>
